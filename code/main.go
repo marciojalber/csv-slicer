@@ -1,4 +1,4 @@
-// src/main.go
+// src/code/main.go
 
 package main
 
@@ -12,20 +12,9 @@ import (
 	"strings"
 	"time"
 
-	"fyne.io/fyne/v2/app"
-	"fyne.io/fyne/v2/widget"
-
 	"github.com/hashicorp/hcl/v2/gohcl"
 	"github.com/hashicorp/hcl/v2/hclparse"
 )
-
-// Removidos os registros com protocAgenda = 0
-// Removidos os registros com agendamento duplicado para tarefas diferentes
-// Removidos os agendamentos com agendamento duplicado para tarefas diferentes
-//  32 casos - Removidos os agendamentos com hora > 23:59:59
-// 546 casos - Alguns agendamentos não foram encontrados
-
-// - 1383865 - 1739360 - 1707401 - 1203769
 
 type Tick struct {
 	fname string
@@ -100,57 +89,46 @@ var (
 )
 
 func main() {
-	a := app.New()
-	w := a.NewWindow("Hello")
+	initConfig()
+	prepareTest()
+	prepareImportation()
 
-	w.SetContent(widget.NewButton(
-		"Click me",
-		func() { println("Hey") },
-	))
+	// PREPARE SOURCE
+	for _, fname := range cfg.Source.Files {
+		files = 0
+		fmt.Println("PROCESSING FILE:", fname)
+		fsource_name := cfg.Source.DirBase + "/" + fname
+		file := utils.OpenFileOrError(fsource_name, "Problem to open the file ["+fsource_name+"].")
+		defer file.Close()
 
-	w.ShowAndRun()
-	/*
-		initConfig()
-		prepareTest()
-		prepareImportation()
+		// START READING
+		reader := utils.NewCsvReader(file, []rune(cfg.Source.Separator)[0])
+		getHeader(reader)
 
-		// PREPARE SOURCE
-		for _, fname := range cfg.Source.Files {
-			files = 0
-			fmt.Println("PROCESSING FILE:", fname)
-			fsource_name := cfg.Source.DirBase + "/" + fname
-			file := utils.OpenFileOrError(fsource_name, "Problem to open the file ["+fsource_name+"].")
-			defer file.Close()
-
-			// START READING
-			reader := utils.NewCsvReader(file, []rune(cfg.Source.Separator)[0])
-			getHeader(reader)
-
-			// READ LINES
-			for {
-				record, must_break := utils.ReadCsvLine(reader)
-				if must_break {
-					break
-				}
-
-				if !getCsvLine(record) {
-					continue
-				}
-
-				total++
-
-				if total == cfg.Target.MaxLinesPerFile {
-					saveSlice(fname)
-				}
+		// READ LINES
+		for {
+			record, must_break := utils.ReadCsvLine(reader)
+			if must_break {
+				break
 			}
 
-			if total > 0 {
+			if !getCsvLine(record) {
+				continue
+			}
+
+			total++
+
+			if total == cfg.Target.MaxLinesPerFile {
 				saveSlice(fname)
 			}
 		}
 
-		log()
-	*/
+		if total > 0 {
+			saveSlice(fname)
+		}
+	}
+
+	log()
 }
 
 func initConfig() {
