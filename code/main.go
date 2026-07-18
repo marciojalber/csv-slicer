@@ -12,6 +12,9 @@ import (
 	"strings"
 	"time"
 
+	"fyne.io/fyne/v2/app"
+	"fyne.io/fyne/v2/widget"
+
 	"github.com/hashicorp/hcl/v2/gohcl"
 	"github.com/hashicorp/hcl/v2/hclparse"
 )
@@ -97,46 +100,57 @@ var (
 )
 
 func main() {
-	initConfig()
-	prepareTest()
-	prepareImportation()
+	a := app.New()
+	w := a.NewWindow("Hello")
 
-	// PREPARE SOURCE
-	for _, fname := range cfg.Source.Files {
-		files = 0
-		fmt.Println("PROCESSING FILE:", fname)
-		fsource_name := cfg.Source.DirBase + "/" + fname
-		file := utils.OpenFileOrError(fsource_name, "Problem to open the file ["+fsource_name+"].")
-		defer file.Close()
+	w.SetContent(widget.NewButton(
+		"Click me",
+		func() { println("Hey") },
+	))
 
-		// START READING
-		reader := utils.NewCsvReader(file, []rune(cfg.Source.Separator)[0])
-		getHeader(reader)
+	w.ShowAndRun()
+	/*
+		initConfig()
+		prepareTest()
+		prepareImportation()
 
-		// READ LINES
-		for {
-			record, must_break := utils.ReadCsvLine(reader)
-			if must_break {
-				break
+		// PREPARE SOURCE
+		for _, fname := range cfg.Source.Files {
+			files = 0
+			fmt.Println("PROCESSING FILE:", fname)
+			fsource_name := cfg.Source.DirBase + "/" + fname
+			file := utils.OpenFileOrError(fsource_name, "Problem to open the file ["+fsource_name+"].")
+			defer file.Close()
+
+			// START READING
+			reader := utils.NewCsvReader(file, []rune(cfg.Source.Separator)[0])
+			getHeader(reader)
+
+			// READ LINES
+			for {
+				record, must_break := utils.ReadCsvLine(reader)
+				if must_break {
+					break
+				}
+
+				if !getCsvLine(record) {
+					continue
+				}
+
+				total++
+
+				if total == cfg.Target.MaxLinesPerFile {
+					saveSlice(fname)
+				}
 			}
 
-			if !getCsvLine(record) {
-				continue
-			}
-
-			total++
-
-			if total == cfg.Target.MaxLinesPerFile {
+			if total > 0 {
 				saveSlice(fname)
 			}
 		}
 
-		if total > 0 {
-			saveSlice(fname)
-		}
-	}
-
-	log()
+		log()
+	*/
 }
 
 func initConfig() {
