@@ -1,0 +1,412 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSV Slicer</title>
+  <link rel="stylesheet" href="../../css/spectre.min.css" />
+  <link rel="stylesheet" href="../../css/spectre-exp.min.css" />
+  <link rel="stylesheet" href="../../css/spectre-icons.min.css" />
+  <style>
+    body {
+      padding: 10px
+    }
+    .overlay {
+      inset: 0;
+      background: #0004;
+      position: fixed;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .overlay-msg {
+      display: inline-block;
+      padding: 0.5rem 1rem;
+      border-radius: 4px;
+      background-color: #0004;
+      font-size: 1.1rem;
+      color: white;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <script src="../../js/petite-vue.min.js"></script>
+  
+<main class="container">
+  <div class="overlay" v-if="busy.active">
+    <div class="overlay-msg">{{busy.msg}}</div>
+  </div>
+  <h2>
+    CSV Slicer
+  </h2>
+
+  <!-- SOURCE -->
+  <br/>
+<div class="h5">FILE SOURCE</div>
+<div class="card mb-2" style="border: 1px solid black">
+  <div class="card-body">
+    <div class="mb-2">
+      Separator
+      <input
+        v-model="sourceSep"
+        class   = "mb-2"
+      >
+      <button class="btn bg-secondary" @click="getTestFile">
+        Test
+      </button>
+      <button class="btn bg-primary" @click="browse">
+        Search
+      </button>
+    </div>
+    <table class="table">
+      <thead>
+        <tr>
+        <th>FILE NAME</th>
+        <th>SIZE</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-for="file in exposed.filesSource">
+          <td v-text="file[0]"></td>
+          <td v-text="file[1]"></td>
+        </tr>
+        <tr v-if="!exposed.filesSource.length">
+          <td colspan="2">
+            <span class="chip">NONE FILE</span>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+  
+  <!-- HEADER -->
+  <br/>
+<div class="h5">HEADER</div>
+<div class="card mb-2" style="border: 1px solid black">
+  <div class="card-body">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>
+            <button
+              @click  = "exposed.selectCols()"
+              class   = "btn btn-link"
+            >
+              <i
+                :class  = "exposed.colsIcon"
+              ></i>
+            </button>
+            COLUMN
+          </th>
+          <th>RENAME_TO</th>
+          <th>FORMATTER_TO</th>
+          <th>FILTER</th>
+          <th>ACTION</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr
+          v-for="col in exposed.header"
+          :class = "{'text-gray': !exposed.columns[col]}"
+        >
+          <td>
+            <div class="form-group">
+              <label class="form-checkbox float-left">
+                <input
+                  @change = "exposed.colsClick(col)"
+                  type    = "checkbox"
+                  v-model = "exposed.columns[col]"
+                >
+                <i class="form-icon"></i>
+                <span class="d-inline-block" v-text="col"></span>
+              </label>
+            </div>
+          </td>
+          <td class="text-gray">
+            <input
+              class   = "form-input"
+              v-model = "exposed.renames[col]"
+            />
+          </td>
+          <td class="text-gray">
+            <label class="form-checkbox">
+              <input type="checkbox" v-model="exposed.toDigit[col]">
+              <i class="form-icon"></i> Only digits
+            </label>
+          </td>
+          <td class="text-gray">[UNAVAILABLE]</td>
+          <td class="text-gray">[UNAVAILABLE]</td>
+        </tr>
+        <tr v-if="!exposed.header.length">
+          <td colspan="5">
+            <span class="chip">NO HEADER</span>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+  <!-- PROCESS -->
+  <br/>
+<div class="h5">PROCESS</div>
+<div class="card mb-2" style="border: 1px solid black">
+  <div class="card-body pb-2">
+    <div class="columns">
+      <div class="column col-4">
+        Maximum lines per source
+      </div>
+      <div class="column col-8">
+        <input
+          type    = "number"
+          min     = "0"
+          v-model = "maxLines"
+          class   = "mb-2"
+        />
+      </div>
+    </div>
+    <div class="columns">
+      <div class="column col-4">
+        Slice lines
+      </div>
+      <div class="column col-8">
+        <input
+          type    = "number"
+          step    = "100000"
+          min     = "100000"
+          v-model = "lineSlice"
+          class   = "mb-2"
+        />
+      </div>
+    </div>
+    <div class="columns" v-if="exposed.header.length">
+      <div class="column col-4">
+        IF SQL, db.tablename
+      </div>
+      <div class="column col-8">
+        <input
+          step    = "100000"
+          min     = "100000"
+          v-model = "sqlTable"
+          class   = "mb-2"
+        />
+      </div>
+    </div>
+    <div class="columns">
+      <div class="column col-4">
+        </div>
+      <div class="column col-8">
+        <button
+          class     = "btn btn-primary mb-2"
+          @click    = "processFiles"
+          :disabled = "!exposed.filesSource.length"
+        >
+          Process
+        </button>
+      </div>
+    </div>
+  </div>
+  <div
+    class   = "card-footer bg-grey"
+    v-if    = "exposed.processing"
+  >
+    <progress class = "progress"></progress>
+  </div>
+</div>
+  
+  <!-- PROCESS -->
+  <br/>
+<div class="h5">
+  FILES TARGET
+  <span v-if="exposed.filesTarget.length">({{exposed.filesTarget.length}})</span>
+</div>
+<div class="card mb-2" style="border: 1px solid black">
+  <div class="card-body">
+    <div v-if="!exposed.filesTarget.length">
+      <span class="chip">NO FILE PRODUCED</span>
+    </div>
+    <div v-for="file in exposed.filesTarget">
+      <v-icon class="icon icon-check text-success mr-2"></v-icon>
+      {{ file }}
+    </div>
+  </div>
+</div>
+</main>
+
+<script>
+  // import { createApp, reactive } from PetiteVue
+
+  const exposed = PetiteVue.reactive({
+    processing : false,
+    
+    header    : [],
+    columns   : [],
+    renames   : {},
+    toDigit   : {},
+    replaces  : {},
+    filters   : [],
+    setHeader(header) {
+      if (this.header == header) return;
+      
+      this.header     = header;
+      this.columns    = {};
+      this.renames    = {};
+      this.toDigit    = {};
+      this.replaces   = {};
+      this.filters    = [];
+      
+      for ( let i in header) {
+        let col = header[i];
+        this.columns[col]   = true;
+        this.renames[col]   = "";
+        this.toDigit[col]   = false;
+        this.replaces[col]  = {};
+
+        console.log(col)
+        if (col == 'Descrição do motivo de cancelamento') {
+          this.replaces[col] = {
+            'Ação da aplicação parceira': '1',
+            'Ação do INSS': '2',
+            'Ação DPMF': '3',
+            'Agendamento em duplicidade no sistema parceiro': '4',
+            'Cancelamento devido a enquadramento de Perícia Externa': '5',
+            'Cancelamento devido a migração do SABI para o novo BI': '6',
+            'Cancelamento devido ao encaminhamento para análise do infect': '7',
+            'Cancelamento/Remarcação do agendamento de origem': '8',
+            'Caso fortuito ou força maior': '9',
+            'Divergência nos dados da tarefa e do periciado': '10',
+            'Endereço do hospital/domicílio inexistente': '11',
+            'Falência da empresa': '12',
+            'Falta de tarefa de formulário vinculada a de pontuação': '13',
+            'Impossibilidade de acesso': '14',
+            'Impossibilidade de atendimento': '15',
+            'Impossibilidade de identificação do periciado/requerente': '16',
+            'Indisponibilidade do sistema': '17',
+            'Mudança de endereço': '18',
+            'Não atendimento de SIMA no prazo legal': '19',
+            'Não comparecimento do segurado': '20',
+            'Não informado': '21',
+            'Prazo expirado': '22',
+            'Profissional não cadastrado no sistema parceiro': '23',
+            'Requerente não encontrado no hospital/domicílio': '24',
+            'Solicitação do requerente': '25',
+            'Solicitação do requerente/parceiro/cliente': '26',
+            'Valor inválido': '27',
+          };
+        }
+      }
+    
+      this.colsCheck  = header.length;
+    },
+
+    colsCheck : 0,
+    get colsIcon() {
+      if (this.colsCheck == 0) {
+        return 'icon icon-copy';
+      }
+
+      return this.colsCheck == this.header.length
+        ? 'icon icon-check'
+        : 'icon icon-minus';
+    },
+
+    selectCols() {
+      let tot_header  = this.header.length;
+      let new_value   = this.header.length != this.colsCheck;
+      this.colsCheck  = new_value
+        ? tot_header
+        : 0;
+
+      for ( let col in this.columns) {
+        this.columns[col] = new_value;
+      }
+    },
+    
+    colsClick(val) {
+      this.colsCheck += this.columns[val]
+        ? 1
+        : -1;
+    },
+
+    filesSource: [],
+    addFileTarget(file) {
+      this.filesTarget.push(file);
+    },
+
+    filesTarget: [],
+    finishProcess(file) {
+      this.processing = false;
+    },
+  });
+
+  window.appAddFileTarget = exposed.addFileTarget.bind(exposed)
+  window.appFinishProcess = exposed.finishProcess.bind(exposed)
+  window.appSetHeader     = exposed.setHeader.bind(exposed)
+
+  PetiteVue.createApp({
+    busy: {
+      active: false,
+      msg: "Wait",
+    },
+    sourceSep : ',',
+    maxLines: 0,
+    lineSlice: 100000,
+    sqlTable: '',
+    exposed,
+    
+    async getTestFile() {
+      this.busy.active = true
+      this.busy.msg = "Waiting choose test files..."
+      this.exposed.filesSource = await openTestCSV()
+      this.busy.active = false
+    },
+    
+    async browse() {
+      this.busy.active = true
+      this.busy.msg = "Waiting choose files..."
+      this.exposed.filesSource = await openCSV()
+      this.busy.active = false
+    },
+    
+    async processFiles() {
+      this.exposed.processing = true;
+      this.exposed.filesTarget = [];
+      let sqlTable = this.exposed.header.length
+        ? this.sqlTable
+        : '';
+      let renames = {};
+      let toDigit = {};
+      let columns = [];
+      let replaces = {};
+      
+      for ( let col in this.exposed.renames ) {
+        if (!this.exposed.columns[col]) continue;
+        columns.push(col)
+        let new_val = this.exposed.renames[col].trim();
+        if (!!new_val) renames[col] = new_val;
+        if (this.exposed.toDigit[col]) toDigit[col] = true;
+        if (this.exposed.replaces[col]) {
+          replaces[col] = {};
+          for (const [key, val] of Object.entries(this.exposed.replaces[col])) {
+            replaces[col][key] = val;
+          }
+        }
+      }
+      
+      await procCSV(
+        this.sourceSep,
+        this.maxLines,
+        this.lineSlice,
+        sqlTable,
+        columns,
+        renames,
+        toDigit,
+        replaces
+      );
+    },
+  })
+  .mount()
+</script>
+</body>
+</html>

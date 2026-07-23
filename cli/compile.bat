@@ -1,12 +1,12 @@
 @echo off
 
-:: BUILD
-    set bin=csvslicer.exe
-
 :: COMPILE PAGES
     echo.
     echo COMPILING PAGES...
     go run cmd/jf_ui/ui.go
+
+:: BUILD
+    set bin=csvslicer.exe
 
 :: COMPILE APP
     echo.

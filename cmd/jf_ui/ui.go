@@ -23,9 +23,6 @@ var (
 	track_name = "__tracking.json"
 )
 
-// Create new files in the new path
-// Link old ones
-
 func main() {
 	old_path := "ui/pages_old_" + strconv.FormatInt(time.Now().Unix(), 36)
 	fmt.Println(old_path)
@@ -57,8 +54,9 @@ func parseDir(path string) {
 		fmt.Println("\n" + fpath + ":")
 		fmt.Println(strings.Repeat("-", len(fpath)))
 
-		if !mustRebuild(fpath) {
-			fmt.Println("  File is updated.")
+		if !mustRebuild(path) {
+			fmt.Println("  File [ui/pages/" + path + ".html] is updated.")
+			os.Link("ui/pages/"+path+".html", "ui/_pages/"+path+".html")
 			continue
 		}
 
@@ -166,20 +164,26 @@ func parse(fname, content string, depends []string) string {
 }
 
 func mustRebuild(fpath string) bool {
-	fname := fpath + "/" + track_name
+	fname := basepath + fpath + "/" + track_name
 
-	_, err1 := os.Stat(fname)
+	fhtml := "ui/pages/" + fpath + ".html"
+	_, err1 := os.Stat(fhtml)
 	if err1 != nil {
 		return true
 	}
 
-	data, err2 := os.ReadFile(fname)
+	_, err2 := os.Stat(fname)
 	if err2 != nil {
 		return true
 	}
 
-	err3 := json.Unmarshal(data, &tracking)
+	data, err3 := os.ReadFile(fname)
 	if err3 != nil {
+		return true
+	}
+
+	err4 := json.Unmarshal(data, &tracking)
+	if err4 != nil {
 		return true
 	}
 
