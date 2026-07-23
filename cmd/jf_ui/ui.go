@@ -2,10 +2,14 @@ package main
 
 import (
 	"embed"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"regexp"
+	"strconv"
 	"strings"
+	"time"
 )
 
 type UI struct {
@@ -13,14 +17,24 @@ type UI struct {
 }
 
 var (
-	ui       *UI
-	basepath = "templates/pages/"
+	ui         *UI
+	basepath   = "templates/pages/"
+	tracking   map[string]int64
+	track_name = "__tracking.json"
 )
 
+// Create new files in the new path
+// Link old ones
+
 func main() {
-	os.RemoveAll("ui/pages")
-	os.Mkdir("ui/pages", 0644)
+	old_path := "ui/pages_old_" + strconv.FormatInt(time.Now().Unix(), 36)
+	fmt.Println(old_path)
+	os.RemoveAll("ui/_pages")
+	os.Mkdir("ui/_pages", 0644)
 	parseDir("")
+	os.Rename("ui/pages", old_path)
+	os.Rename("ui/_pages", "ui/pages")
+	os.RemoveAll(old_path)
 }
 
 func parseDir(path string) {
@@ -40,26 +54,37 @@ func parseDir(path string) {
 			continue
 		}
 
+		fmt.Println("\n" + fpath + ":")
+		fmt.Println(strings.Repeat("-", len(fpath)))
+
+		if !mustRebuild(fpath) {
+			fmt.Println("  File is updated.")
+			continue
+		}
+
 		MakePage(path)
 	}
 }
 
-func MakePage(fname string) string {
+func MakePage(fname string) {
+	tracking = map[string]int64{}
+	fpath := "templates/pages/" + fname
 	pos := strings.LastIndex(fname, "/")
-	dir := "ui/pages"
+	dir := "ui/_pages"
 	if pos != -1 {
 		dir += "/" + fname[:pos]
 	}
 	pname := fname[pos+1:] + ".html"
 	if err := os.MkdirAll(dir, 0644); err != nil {
-		panic(err)
+		finishWithError(err)
 	}
 
 	depends := []string{}
-	html := parse("templates/pages/"+fname+"/__index.html", "", depends)
+	html := parse(fpath+"/__index.html", "", depends)
 	os.WriteFile(dir+"/"+pname, []byte(html), 0644)
 
-	return html
+	data, _ := json.MarshalIndent(tracking, "", "    ")
+	os.WriteFile(fpath+"/"+track_name, []byte(data), 0644)
 }
 
 func parse(fname, content string, depends []string) string {
@@ -67,25 +92,33 @@ func parse(fname, content string, depends []string) string {
 	fbase := fname[:pos]
 	fname = fname[pos+1:]
 
+	info, err := os.Stat(fbase + "/" + fname)
+	if err != nil {
+		finishWithError(err)
+	}
+
 	html_byte, err := os.ReadFile(fbase + "/" + fname)
 	if err != nil {
-		panic(err)
+		finishWithError(err)
 	}
+
+	tracking[fbase+"/"+fname] = info.ModTime().Unix()
 	html := strings.TrimSpace(string(html_byte))
 	layout := ""
 
 	for i, item := range depends {
 		if fbase+"/"+fname == item {
-			fmt.Println("\nRecursive dependence cycle:")
+			msg := "Recursive dependence cycle:\n"
 			for i2, item2 := range depends {
-				sep := "  "
+				sep := "   "
 				if i == i2 {
-					sep = "->"
+					sep = "-> "
 				}
-				fmt.Println(sep, item2)
+				msg += sep + item2
 			}
-			fmt.Println("=>", fbase+"/"+fname)
-			os.Exit(1)
+			msg += "=> " + fbase + "/" + fname
+			err := errors.New(msg)
+			finishWithError(err)
 		}
 	}
 	depends = append(depends, fbase+"/"+fname)
@@ -105,19 +138,19 @@ func parse(fname, content string, depends []string) string {
 			return content
 
 		case "css":
-			fmt.Println("@css", fbase+":", parts[1])
+			fmt.Println("  @css", fbase+":", parts[1])
 			return "<link rel=\"stylesheet\" href=\"../../" + parts[1] + "\" />"
 
 		case "js":
-			fmt.Println("@js", fbase+":", parts[1])
+			fmt.Println("  @js", fbase+":", parts[1])
 			return "<script src=\"../../" + parts[1] + "\"></script>"
 
 		case "global":
-			fmt.Println("@global", parts[1])
+			fmt.Println("  @global", parts[1])
 			return parse("templates/shared/"+parts[0]+".html", "", depends)
 
 		case "local":
-			fmt.Println("@local", fbase+":", parts[1])
+			fmt.Println("  @local", fbase+":", parts[1])
 			return parse(fbase+"/"+parts[1]+".html", "", depends)
 
 		default:
@@ -130,4 +163,36 @@ func parse(fname, content string, depends []string) string {
 	}
 
 	return parse(layout, html, depends)
+}
+
+func mustRebuild(fpath string) bool {
+	fname := fpath + "/" + track_name
+
+	_, err1 := os.Stat(fname)
+	if err1 != nil {
+		return true
+	}
+
+	data, err2 := os.ReadFile(fname)
+	if err2 != nil {
+		return true
+	}
+
+	err3 := json.Unmarshal(data, &tracking)
+	if err3 != nil {
+		return true
+	}
+
+	for fname, ftime := range tracking {
+		if info, err := os.Stat(fname); err != nil || info.ModTime().Unix() != ftime {
+			return true
+		}
+	}
+
+	return false
+}
+
+func finishWithError(err error) {
+	os.RemoveAll("ui/pages")
+	panic(err)
 }
