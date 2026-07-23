@@ -1,0 +1,65 @@
+<br/>
+<div class="h5">PROCESS</div>
+<div class="card mb-2" style="border: 1px solid black">
+  <div class="card-body pb-2">
+    <div class="columns">
+      <div class="column col-4">
+        Maximum lines per source
+      </div>
+      <div class="column col-8">
+        <input
+          type    = "number"
+          min     = "0"
+          v-model = "maxLines"
+          class   = "mb-2"
+        />
+      </div>
+    </div>
+    <div class="columns">
+      <div class="column col-4">
+        Slice lines
+      </div>
+      <div class="column col-8">
+        <input
+          type    = "number"
+          step    = "100000"
+          min     = "100000"
+          v-model = "lineSlice"
+          class   = "mb-2"
+        />
+      </div>
+    </div>
+    <div class="columns" v-if="exposed.header.length">
+      <div class="column col-4">
+        IF SQL, db.tablename
+      </div>
+      <div class="column col-8">
+        <input
+          step    = "100000"
+          min     = "100000"
+          v-model = "sqlTable"
+          class   = "mb-2"
+        />
+      </div>
+    </div>
+    <div class="columns">
+      <div class="column col-4">
+        </div>
+      <div class="column col-8">
+        <button
+          class     = "btn btn-primary mb-2"
+          @click    = "processFiles"
+          :disabled = "!exposed.filesSource.length"
+        >
+          Process
+        </button>
+      </div>
+    </div>
+  </div>
+  <div
+    class   = "card-footer bg-grey"
+    v-if    = "exposed.processing"
+  >
+    <progress class = "progress"></progress>
+  </div>
+</div>

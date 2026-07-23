@@ -1,0 +1,38 @@
+<br/>
+<div class="h5">FILE SOURCE</div>
+<div class="card mb-2" style="border: 1px solid black">
+  <div class="card-body">
+    <div class="mb-2">
+      Separator
+      <input
+        v-model="sourceSep"
+        class   = "mb-2"
+      >
+      <button class="btn bg-secondary" @click="getTestFile">
+        Test
+      </button>
+      <button class="btn bg-primary" @click="browse">
+        Search
+      </button>
+    </div>
+    <table class="table">
+      <thead>
+        <tr>
+        <th>FILE NAME</th>
+        <th>SIZE</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-for="file in exposed.filesSource">
+          <td v-text="file[0]"></td>
+          <td v-text="file[1]"></td>
+        </tr>
+        <tr v-if="!exposed.filesSource.length">
+          <td colspan="2">
+            <span class="chip">NONE FILE</span>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>

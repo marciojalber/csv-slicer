@@ -1,0 +1,36 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSV Slicer</title>
+  {{@css css/spectre.min.css}}
+  {{@css css/spectre-exp.min.css}}
+  {{@css css/spectre-icons.min.css}}
+  <style>
+    body {
+      padding: 10px
+    }
+    .overlay {
+      inset: 0;
+      background: #0004;
+      position: fixed;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .overlay-msg {
+      display: inline-block;
+      padding: 0.5rem 1rem;
+      border-radius: 4px;
+      background-color: #0004;
+      font-size: 1.1rem;
+      color: white;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  {{@js js/petite-vue.min.js}}
+  {{@content}}
+</body>
+</html>

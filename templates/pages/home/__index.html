@@ -1,0 +1,196 @@
+{{@layout main}}
+<main class="container">
+  <div class="overlay" v-if="busy.active">
+    <div class="overlay-msg">{{busy.msg}}</div>
+  </div>
+  <h2>
+    CSV Slicer
+  </h2>
+
+  <!-- SOURCE -->
+  {{@local 1_fileSource}}
+  
+  <!-- HEADER -->
+  {{@local 2_header}}
+
+  <!-- PROCESS -->
+  {{@local 3_process}}
+  
+  <!-- PROCESS -->
+  {{@local 4_filesTarget}}
+</main>
+
+<script>
+  // import { createApp, reactive } from PetiteVue
+
+  const exposed = PetiteVue.reactive({
+    processing : false,
+    
+    header    : [],
+    columns   : [],
+    renames   : {},
+    toDigit   : {},
+    replaces  : {},
+    filters   : [],
+    setHeader(header) {
+      if (this.header == header) return;
+      
+      this.header     = header;
+      this.columns    = {};
+      this.renames    = {};
+      this.toDigit    = {};
+      this.replaces   = {};
+      this.filters    = [];
+      
+      for ( let i in header) {
+        let col = header[i];
+        this.columns[col]   = true;
+        this.renames[col]   = "";
+        this.toDigit[col]   = false;
+        this.replaces[col]  = {};
+
+        console.log(col)
+        if (col == 'Descrição do motivo de cancelamento') {
+          this.replaces[col] = {
+            'Ação da aplicação parceira': '1',
+            'Ação do INSS': '2',
+            'Ação DPMF': '3',
+            'Agendamento em duplicidade no sistema parceiro': '4',
+            'Cancelamento devido a enquadramento de Perícia Externa': '5',
+            'Cancelamento devido a migração do SABI para o novo BI': '6',
+            'Cancelamento devido ao encaminhamento para análise do infect': '7',
+            'Cancelamento/Remarcação do agendamento de origem': '8',
+            'Caso fortuito ou força maior': '9',
+            'Divergência nos dados da tarefa e do periciado': '10',
+            'Endereço do hospital/domicílio inexistente': '11',
+            'Falência da empresa': '12',
+            'Falta de tarefa de formulário vinculada a de pontuação': '13',
+            'Impossibilidade de acesso': '14',
+            'Impossibilidade de atendimento': '15',
+            'Impossibilidade de identificação do periciado/requerente': '16',
+            'Indisponibilidade do sistema': '17',
+            'Mudança de endereço': '18',
+            'Não atendimento de SIMA no prazo legal': '19',
+            'Não comparecimento do segurado': '20',
+            'Não informado': '21',
+            'Prazo expirado': '22',
+            'Profissional não cadastrado no sistema parceiro': '23',
+            'Requerente não encontrado no hospital/domicílio': '24',
+            'Solicitação do requerente': '25',
+            'Solicitação do requerente/parceiro/cliente': '26',
+            'Valor inválido': '27',
+          };
+        }
+      }
+    
+      this.colsCheck  = header.length;
+    },
+
+    colsCheck : 0,
+    get colsIcon() {
+      if (this.colsCheck == 0) {
+        return 'icon icon-copy';
+      }
+
+      return this.colsCheck == this.header.length
+        ? 'icon icon-check'
+        : 'icon icon-minus';
+    },
+
+    selectCols() {
+      let tot_header  = this.header.length;
+      let new_value   = this.header.length != this.colsCheck;
+      this.colsCheck  = new_value
+        ? tot_header
+        : 0;
+
+      for ( let col in this.columns) {
+        this.columns[col] = new_value;
+      }
+    },
+    
+    colsClick(val) {
+      this.colsCheck += this.columns[val]
+        ? 1
+        : -1;
+    },
+
+    filesSource: [],
+    addFileTarget(file) {
+      this.filesTarget.push(file);
+    },
+
+    filesTarget: [],
+    finishProcess(file) {
+      this.processing = false;
+    },
+  });
+
+  window.appAddFileTarget = exposed.addFileTarget.bind(exposed)
+  window.appFinishProcess = exposed.finishProcess.bind(exposed)
+  window.appSetHeader     = exposed.setHeader.bind(exposed)
+
+  PetiteVue.createApp({
+    busy: {
+      active: false,
+      msg: "Wait",
+    },
+    sourceSep : ',',
+    maxLines: 0,
+    lineSlice: 100000,
+    sqlTable: '',
+    exposed,
+    
+    async getTestFile() {
+      this.busy.active = true
+      this.busy.msg = "Waiting choose test files..."
+      this.exposed.filesSource = await openTestCSV()
+      this.busy.active = false
+    },
+    
+    async browse() {
+      this.busy.active = true
+      this.busy.msg = "Waiting choose files..."
+      this.exposed.filesSource = await openCSV()
+      this.busy.active = false
+    },
+    
+    async processFiles() {
+      this.exposed.processing = true;
+      this.exposed.filesTarget = [];
+      let sqlTable = this.exposed.header.length
+        ? this.sqlTable
+        : '';
+      let renames = {};
+      let toDigit = {};
+      let columns = [];
+      let replaces = {};
+      
+      for ( let col in this.exposed.renames ) {
+        if (!this.exposed.columns[col]) continue;
+        columns.push(col)
+        let new_val = this.exposed.renames[col].trim();
+        if (!!new_val) renames[col] = new_val;
+        if (this.exposed.toDigit[col]) toDigit[col] = true;
+        if (this.exposed.replaces[col]) {
+          replaces[col] = {};
+          for (const [key, val] of Object.entries(this.exposed.replaces[col])) {
+            replaces[col][key] = val;
+          }
+        }
+      }
+      
+      await procCSV(
+        this.sourceSep,
+        this.maxLines,
+        this.lineSlice,
+        sqlTable,
+        columns,
+        renames,
+        toDigit,
+        replaces
+      );
+    },
+  })
+  .mount()
+</script>

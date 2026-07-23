@@ -1,12 +1,19 @@
 @echo off
 
-:: BUILDING BUILD
-    set bin=csvslicer.exe 
+:: BUILD
+    set bin=csvslicer.exe
 
-:: COMPILE
+:: COMPILE PAGES
     echo.
-    echo COMPILING...
-    go build -ldflags="-w -s" -o %bin% code/main.go
+    echo COMPILING PAGES...
+    go run cmd/jf_ui/ui.go
+
+:: COMPILE APP
+    echo.
+    echo COMPILING APP...
+    go mod tidy
+    : go build -ldflags="-w -s" -o %bin% main.go
+    go build -ldflags="-w -s" -o %bin% main.go
 
 :: EXECUTE
     echo.

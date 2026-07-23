@@ -1,0 +1,66 @@
+<br/>
+<div class="h5">HEADER</div>
+<div class="card mb-2" style="border: 1px solid black">
+  <div class="card-body">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>
+            <button
+              @click  = "exposed.selectCols()"
+              class   = "btn btn-link"
+            >
+              <i
+                :class  = "exposed.colsIcon"
+              ></i>
+            </button>
+            COLUMN
+          </th>
+          <th>RENAME_TO</th>
+          <th>FORMATTER_TO</th>
+          <th>FILTER</th>
+          <th>ACTION</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr
+          v-for="col in exposed.header"
+          :class = "{'text-gray': !exposed.columns[col]}"
+        >
+          <td>
+            <div class="form-group">
+              <label class="form-checkbox float-left">
+                <input
+                  @change = "exposed.colsClick(col)"
+                  type    = "checkbox"
+                  v-model = "exposed.columns[col]"
+                >
+                <i class="form-icon"></i>
+                <span class="d-inline-block" v-text="col"></span>
+              </label>
+            </div>
+          </td>
+          <td class="text-gray">
+            <input
+              class   = "form-input"
+              v-model = "exposed.renames[col]"
+            />
+          </td>
+          <td class="text-gray">
+            <label class="form-checkbox">
+              <input type="checkbox" v-model="exposed.toDigit[col]">
+              <i class="form-icon"></i> Only digits
+            </label>
+          </td>
+          <td class="text-gray">[UNAVAILABLE]</td>
+          <td class="text-gray">[UNAVAILABLE]</td>
+        </tr>
+        <tr v-if="!exposed.header.length">
+          <td colspan="5">
+            <span class="chip">NO HEADER</span>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
