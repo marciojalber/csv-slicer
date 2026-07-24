@@ -2,7 +2,6 @@ package main
 
 /* @todo
 WEBVIEW
-- To track update files
 - To try cache ui files
 - To swift to tailwind
 
@@ -98,17 +97,30 @@ func init() {
 }
 
 func main() {
+	now := time.Now()
 	url, err := startServer()
+	tick(now, "Server started")
 	if err != nil {
 		panic(err)
 	}
 
 	w = webview.New(true)
+
 	defer w.Destroy()
+	tick(now, "Webview Started")
 
 	setupWindow(url + "/pages/home.html")
+	tick(now, "Webview initialized")
 	registerWebviewMethods()
+	tick(now, "Methods registered")
 	w.Run()
+}
+
+func tick(time_ref time.Time, msg string) {
+	_tick := time.Since(time_ref).Milliseconds()
+	secs := _tick / 1000
+	mili := (strconv.FormatInt((_tick*1000-secs)/100000, 10) + "0")[:2]
+	fmt.Println(strconv.FormatInt(secs, 10)+"."+mili, "sec -", msg)
 }
 
 func startServer() (string, error) {
@@ -139,9 +151,16 @@ func startServer() (string, error) {
 func setupWindow(url string) {
 	w.SetTitle("CSV Slicer")
 	w.SetSize(screenW, screenH, webview.HintFixed)
-	// w.SetHtml()
-	fmt.Println(url)
+	fmt.Println("          ", url)
 	w.Navigate(url)
+	/*
+		w.SetHtml(`
+		<!doctype html>
+		<html>
+		<body>Hello</body>
+		</html>
+		`)
+	*/
 }
 
 func registerWebviewMethods() {

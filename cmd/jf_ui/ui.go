@@ -1,5 +1,7 @@
 package main
 
+// Validate {{@s...}}
+
 import (
 	"embed"
 	"encoding/json"
@@ -10,10 +12,19 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
 )
 
 type UI struct {
 	res *embed.FS
+}
+
+type Node struct {
+	Type       string
+	Attributes map[string]string
+	Children   []*Node
 }
 
 var (
@@ -21,17 +32,132 @@ var (
 	basepath   = "templates/pages/"
 	tracking   map[string]int64
 	track_name = "__tracking.json"
+	uiData     *hclsyntax.Body
 )
 
 func main() {
+	getData()
 	old_path := "ui/pages_old_" + strconv.FormatInt(time.Now().Unix(), 36)
-	fmt.Println(old_path)
 	os.RemoveAll("ui/_pages")
 	os.Mkdir("ui/_pages", 0644)
 	parseDir("")
 	os.Rename("ui/pages", old_path)
 	os.Rename("ui/_pages", "ui/pages")
 	os.RemoveAll(old_path)
+}
+
+func getData() {
+	data, _ := os.ReadFile("templates/config.hcl")
+
+	file, diags := hclsyntax.ParseConfig(
+		data,
+		"config.hcl",
+		hcl.Pos{
+			Line:   1,
+			Column: 1,
+		},
+	)
+
+	if diags.HasErrors() {
+		panic(diags)
+	}
+
+	uiData = file.Body.(*hclsyntax.Body)
+
+	/*
+		for _, block := range uiData.Blocks {
+			node := parseBlock(block)
+			printNode(node, 0)
+		}
+	*/
+}
+
+func parseBlock(block *hclsyntax.Block) *Node {
+	node := &Node{
+		Type:       block.Type,
+		Attributes: map[string]string{},
+	}
+
+	// Read attributes
+	for name, attr := range block.Body.Attributes {
+		// Simplified: only literal values
+		val, _ := attr.Expr.Value(nil)
+
+		node.Attributes[name] = val.AsString()
+	}
+
+	// Read child blocks
+	for _, child := range block.Body.Blocks {
+		node.Children = append(
+			node.Children,
+			parseBlock(child),
+		)
+	}
+
+	return node
+}
+
+func printNode(n *Node, level int) {
+	fmt.Printf(
+		"%s%s %+v\n",
+		string(make([]byte, level*2)),
+		n.Type,
+		n.Attributes,
+	)
+
+	for _, child := range n.Children {
+		printNode(child, level+1)
+	}
+}
+
+func parseData(path []string, block *hclsyntax.Block, default_val string) string {
+	len_path := len(path)
+
+	if block == nil {
+		if len(path) < 2 {
+			finishWithError(errors.New("Expected context[.context*].attribute"))
+		}
+
+		found := false
+		for _, item := range uiData.Blocks {
+			if item.Type == path[0] {
+				block = item
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			return default_val
+		}
+
+		path = path[1:]
+		len_path--
+	}
+
+	if len_path == 1 {
+		for key, attr := range block.Body.Attributes {
+			if key != path[0] {
+				continue
+			}
+			val, _ := attr.Expr.Value(nil)
+			return val.AsString()
+		}
+		return default_val
+	}
+
+	if len(block.Body.Blocks) == 0 {
+		return default_val
+	}
+
+	for _, node := range block.Body.Blocks {
+		if node.Type != path[0] {
+			continue
+		}
+		return parseData(path[1:], node, default_val)
+	}
+
+	return default_val
 }
 
 func parseDir(path string) {
@@ -135,20 +261,28 @@ func parse(fname, content string, depends []string) string {
 		case "content":
 			return content
 
+		case "favicon":
+			fmt.Println("  @"+parts[0], fbase+":", parts[1])
+			return "<link rel=\"icon\" href=\"../" + parts[1] + "\" type=\"" + parts[2] + "\"/>"
+
+		case "data":
+			fmt.Println("  @"+parts[0], parts[1], parts[2])
+			return parseData(strings.Split(parts[1], "."), nil, parts[2])
+
 		case "css":
-			fmt.Println("  @css", fbase+":", parts[1])
-			return "<link rel=\"stylesheet\" href=\"../../" + parts[1] + "\" />"
+			fmt.Println("  @"+parts[0], fbase+":", parts[1])
+			return "<link rel=\"stylesheet\" href=\"../" + parts[1] + "\" />"
 
 		case "js":
-			fmt.Println("  @js", fbase+":", parts[1])
-			return "<script src=\"../../" + parts[1] + "\"></script>"
+			fmt.Println("  @"+parts[0], fbase+":", parts[1])
+			return "<script src=\"../" + parts[1] + "\"></script>"
 
 		case "global":
-			fmt.Println("  @global", parts[1])
+			fmt.Println("  @"+parts[0], parts[1])
 			return parse("templates/shared/"+parts[0]+".html", "", depends)
 
 		case "local":
-			fmt.Println("  @local", fbase+":", parts[1])
+			fmt.Println("  @"+parts[0], fbase+":", parts[1])
 			return parse(fbase+"/"+parts[1]+".html", "", depends)
 
 		default:
