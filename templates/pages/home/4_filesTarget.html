@@ -1,16 +1,17 @@
 <br/>
-<div class="h5">
+<div class="text-xl mb-2">
   FILES TARGET
   <span v-if="exposed.filesTarget.length">({{exposed.filesTarget.length}})</span>
 </div>
-<div class="card mb-2" style="border: 1px solid black">
-  <div class="card-body">
-    <div v-if="!exposed.filesTarget.length">
-      <span class="chip">NO FILE PRODUCED</span>
-    </div>
-    <div v-for="file in exposed.filesTarget">
-      <v-icon class="icon icon-check text-success mr-2"></v-icon>
-      {{ file }}
-    </div>
+<div class="rounded-lg mb-2 p-2 bg-white border border-gray-400">
+  <div v-if="!exposed.filesTarget.length">
+    <span class="chip">NO FILE PRODUCED</span>
+  </div>
+  <div
+    v-for   = "file in exposed.filesTarget"
+    class   = "truncate flex items-center gap-2"
+  >
+    <span class="text-green-600">{{@include img/icons/file-check.svg}}</span>
+    {{ file }}
   </div>
 </div>

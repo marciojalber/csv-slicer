@@ -269,6 +269,18 @@ func parse(fname, content string, depends []string) string {
 			fmt.Println("  @"+parts[0], parts[1], parts[2])
 			return parseData(strings.Split(parts[1], "."), nil, parts[2])
 
+		case "include":
+			fmt.Println("  @"+parts[0], fbase+":", "ui/"+parts[1])
+			data, err := os.ReadFile("ui/" + parts[1])
+			if err != nil {
+				finishWithError(err)
+			}
+			return string(data)
+
+		case "ui":
+			fmt.Println("  @"+parts[0], fbase+":", parts[1])
+			return "../" + parts[1]
+
 		case "css":
 			fmt.Println("  @"+parts[0], fbase+":", parts[1])
 			return "<link rel=\"stylesheet\" href=\"../" + parts[1] + "\" />"

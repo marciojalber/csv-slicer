@@ -10,6 +10,15 @@ import (
 	"os"
 )
 
+const (
+	_  = iota
+	KB = 1 << (10 * iota)
+	MB
+	GB
+	TB
+	PB
+)
+
 func OpenFileOrError(filename string, err_msg string) *os.File {
 	file, err := os.Open(filename)
 
@@ -48,14 +57,6 @@ func ReadCsvLine(reader *csv.Reader) ([]string, bool) {
 }
 
 func FormatSize(size int64) string {
-	const (
-		KB = 1024
-		MB = KB * 1024
-		GB = MB * 1024
-		TB = GB * 1024
-		PB = TB * 1024
-	)
-
 	switch {
 	case size >= PB:
 		return fmt.Sprintf("%.2f PB", float64(size)/PB)

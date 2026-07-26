@@ -5,13 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{{@data app.name [TITLE]}}</title>
   {{@favicon img/favicon.ico image/png}}
-  {{@css css/spectre.min.css}}
-  {{@css css/spectre-exp.min.css}}
-  {{@css css/spectre-icons.min.css}}
+  {{@js js/tailwind.min.js}}
   <style>
-    body {
-      padding: 10px
-    }
     .overlay {
       inset: 0;
       background: #0004;
@@ -31,7 +26,7 @@
     }
   </style>
 </head>
-<body>
+<body class="bg-gray-100 px-8 py-4">
   {{@js js/petite-vue.min.js}}
   {{@content}}
 </body>

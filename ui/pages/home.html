@@ -5,13 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>CSV Slicer</title>
   <link rel="icon" href="../img/favicon.ico" type="image/png"/>
-  <link rel="stylesheet" href="../css/spectre.min.css" />
-  <link rel="stylesheet" href="../css/spectre-exp.min.css" />
-  <link rel="stylesheet" href="../css/spectre-icons.min.css" />
+  <script src="../js/tailwind.min.js"></script>
   <style>
-    body {
-      padding: 10px
-    }
     .overlay {
       inset: 0;
       background: #0004;
@@ -31,182 +26,188 @@
     }
   </style>
 </head>
-<body>
+<body class="bg-gray-100 px-8 py-4">
   <script src="../js/petite-vue.min.js"></script>
   
-<main class="container">
+<main>
   <div class="overlay" v-if="busy.active">
     <div class="overlay-msg">{{busy.msg}}</div>
   </div>
-  <h2>
+  <h2 class="text-3xl font-medium mb-8">
     CSV Slicer
   </h2>
 
   <!-- SOURCE -->
-  <br/>
-<div class="h5">FILE SOURCE</div>
-<div class="card mb-2" style="border: 1px solid black">
-  <div class="card-body">
-    <div class="mb-2">
-      Separator
-      <input
-        v-model="sourceSep"
-        class   = "mb-2"
-      >
-      <button class="btn bg-secondary" @click="getTestFile">
-        Test
-      </button>
-      <button class="btn bg-primary" @click="browse">
-        Search
-      </button>
-    </div>
-    <table class="table">
-      <thead>
-        <tr>
-        <th>FILE NAME</th>
-        <th>SIZE</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="file in exposed.filesSource">
-          <td v-text="file[0]"></td>
-          <td v-text="file[1]"></td>
-        </tr>
-        <tr v-if="!exposed.filesSource.length">
-          <td colspan="2">
-            <span class="chip">NONE FILE</span>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+  <div class="text-xl mb-2">FILE SOURCE</div>
+<div class="rounded-lg mb-2 p-2 bg-white border border-gray-400">
+  <div class="mb-2">
+    Separator
+    <input
+      v-model = "sourceSep"
+      class   = "px-2 py-1 rounded-sm bg-gray-100 border border-gray-400"
+    >
+    <button
+      class   = "ml-2 px-4 py-2 border border-border rounded-lg text-sm cursor-pointer"
+      @click  = "getTestFile"
+    >Test</button>
+    <button
+      class   = "ml-1 px-4 py-2 rounded-lg bg-blue-500 text-white text-sm cursor-pointer"
+      @click  = "browse"
+    >Search</button>
   </div>
+  <table class="table-auto w-full border-collapse text-sm">
+    <thead>
+      <tr>
+        <th class="border-b-2 border-gray-300 px-4 pt-0 pb-3 text-left font-medium text-gray-400 dark:border-gray-600 dark:text-gray-400">FILE NAME</th>
+        <th class="border-b-2 border-gray-300 px-4 pt-0 pb-3 text-left font-medium text-gray-400 dark:border-gray-600 dark:text-gray-400">SIZE</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr v-for="file in exposed.filesSource">
+        <td
+          v-text  = "file[0]"
+          class   = "px-4"
+        ></td>
+        <td
+          v-text  = "file[1]"
+          class   = "px-4"
+        ></td>
+      </tr>
+      <tr v-if="!exposed.filesSource.length">
+        <td colspan="2" class="px-4">
+          <span class="chip">NONE FILE</span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
 </div>
   
   <!-- HEADER -->
   <br/>
-<div class="h5">HEADER</div>
-<div class="card mb-2" style="border: 1px solid black">
-  <div class="card-body">
-    <table class="table">
-      <thead>
-        <tr>
-          <th>
-            <button
-              @click  = "exposed.selectCols()"
-              class   = "btn btn-link"
-            >
-              <i
-                :class  = "exposed.colsIcon"
-              ></i>
-            </button>
-            COLUMN
-          </th>
-          <th>RENAME_TO</th>
-          <th>FORMATTER_TO</th>
-          <th>FILTER</th>
-          <th>ACTION</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr
-          v-for="col in exposed.header"
-          :class = "{'text-gray': !exposed.columns[col]}"
-        >
-          <td>
-            <div class="form-group">
-              <label class="form-checkbox float-left">
-                <input
-                  @change = "exposed.colsClick(col)"
-                  type    = "checkbox"
-                  v-model = "exposed.columns[col]"
-                >
-                <i class="form-icon"></i>
-                <span class="d-inline-block" v-text="col"></span>
-              </label>
-            </div>
-          </td>
-          <td class="text-gray">
-            <input
-              class   = "form-input"
-              v-model = "exposed.renames[col]"
-            />
-          </td>
-          <td class="text-gray">
-            <label class="form-checkbox">
-              <input type="checkbox" v-model="exposed.toDigit[col]">
-              <i class="form-icon"></i> Only digits
+<div class="text-xl mb-2">HEADER</div>
+<div class="rounded-lg mb-2 p-2 bg-white border border-gray-400">
+  <table class="table-auto w-full border-collapse text-sm">
+    <thead>
+      <tr>
+        <th class="border-b-2 border-gray-300 px-4 pt-0 pb-3 text-left font-medium text-gray-400 dark:border-gray-600 dark:text-gray-400">
+          <button
+            @click  = "exposed.selectCols()"
+            class   = "btn btn-link"
+          >
+            <i
+              :class  = "exposed.colsIcon"
+            ></i>
+          </button>
+          COLUMN
+        </th>
+        <th class="border-b-2 border-gray-300 px-8 pt-0 pb-3 text-left font-medium text-gray-400 dark:border-gray-600 dark:text-gray-400">RENAME_TO</th>
+        <th class="border-b-2 border-gray-300 px-4 pt-0 pb-3 text-left font-medium text-gray-400 dark:border-gray-600 dark:text-gray-400">FORMATTER_TO</th>
+        <th class="border-b-2 border-gray-300 px-4 pt-0 pb-3 text-left font-medium text-gray-400 dark:border-gray-600 dark:text-gray-400">FILTER</th>
+        <th class="border-b-2 border-gray-300 px-4 pt-0 pb-3 text-left font-medium text-gray-400 dark:border-gray-600 dark:text-gray-400">ACTION</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr
+        v-for="col in exposed.header"
+        :class = "{'text-gray': !exposed.columns[col]}"
+      >
+        <td class="px-4">
+          <div class="form-group">
+            <label class="truncate cursor-pointer">
+              <input
+                @change = "exposed.colsClick(col)"
+                type    = "checkbox"
+                class   = "size-4 rounded border-gray-300 shadow-sm float-left mt-1 mr-2"
+                v-model = "exposed.columns[col]"
+              >
+              <span class="font-light" v-text="col"></span>
             </label>
-          </td>
-          <td class="text-gray">[UNAVAILABLE]</td>
-          <td class="text-gray">[UNAVAILABLE]</td>
-        </tr>
-        <tr v-if="!exposed.header.length">
-          <td colspan="5">
-            <span class="chip">NO HEADER</span>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
+          </div>
+        </td>
+        <td class="text-gray px-4">
+          <input
+            class   = "form-input"
+            v-model = "exposed.renames[col]"
+          />
+        </td>
+        <td class="text-gray px-4">
+          <label class="cursor-pointer">
+            <input
+              type    = "checkbox"
+              v-model = "exposed.toDigit[col]"
+              class   = "size-4 rounded border-gray-300 shadow-sm float-left mt-1 mr-2"
+            >
+            <span class="font-light">Only digits</span>
+          </label>
+        </td>
+        <td class="text-gray-300 px-4">[UNAVAILABLE]</td>
+        <td class="text-gray-300 px-4">[UNAVAILABLE]</td>
+      </tr>
+      <tr v-if="!exposed.header.length">
+        <td colspan="5" class="px-4">
+          <span class="chip">NO HEADER</span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
 </div>
 
   <!-- PROCESS -->
   <br/>
-<div class="h5">PROCESS</div>
-<div class="card mb-2" style="border: 1px solid black">
-  <div class="card-body pb-2">
-    <div class="columns">
-      <div class="column col-4">
-        Maximum lines per source
-      </div>
-      <div class="column col-8">
-        <input
-          type    = "number"
-          min     = "0"
-          v-model = "maxLines"
-          class   = "mb-2"
-        />
-      </div>
+<div class="text-xl mb-2">PROCESS</div>
+<div class="rounded-lg mb-2 p-2 bg-white border border-gray-400">
+  <div class="grid grid-cols-12 gap-4">
+    <div class="col-span-4">
+      Maximum lines per source
     </div>
-    <div class="columns">
-      <div class="column col-4">
-        Slice lines
-      </div>
-      <div class="column col-8">
-        <input
-          type    = "number"
-          step    = "100000"
-          min     = "100000"
-          v-model = "lineSlice"
-          class   = "mb-2"
-        />
-      </div>
+    <div class="col-span-8">
+      <input
+        type    = "number"
+        min     = "0"
+        v-model = "maxLines"
+        class   = "mb-2 px-2 py-1 rounded-sm bg-gray-100 border border-gray-400"
+      />
     </div>
-    <div class="columns" v-if="exposed.header.length">
-      <div class="column col-4">
-        IF SQL, db.tablename
-      </div>
-      <div class="column col-8">
-        <input
-          step    = "100000"
-          min     = "100000"
-          v-model = "sqlTable"
-          class   = "mb-2"
-        />
-      </div>
+  </div>
+  <div class="grid grid-cols-12 gap-4">
+    <div class="col-span-4">
+      Slice lines
     </div>
-    <div class="columns">
-      <div class="column col-4">
-        </div>
-      <div class="column col-8">
-        <button
-          class     = "btn btn-primary mb-2"
-          @click    = "processFiles"
-          :disabled = "!exposed.filesSource.length"
-        >
-          Process
-        </button>
+    <div class="col-span-8">
+      <input
+        type    = "number"
+        step    = "100000"
+        min     = "100000"
+        v-model = "lineSlice"
+        class   = "mb-2 px-2 py-1 rounded-sm bg-gray-100 border border-gray-400"
+      />
+    </div>
+  </div>
+  <div class="grid grid-cols-12 gap-4" v-if="exposed.header.length">
+    <div class="col-span-4">
+      IF SQL, db.tablename
+    </div>
+    <div class="col-span-8">
+      <input
+        step    = "100000"
+        min     = "100000"
+        v-model = "sqlTable"
+        class   = "mb-2 px-2 py-1 rounded-sm bg-gray-100 border border-gray-400"
+      />
+    </div>
+  </div>
+  <div class="grid grid-cols-12 gap-4">
+    <div class="col-span-4">
       </div>
+    <div class="col-span-8">
+      <button
+        class     = "px-4 py-2 rounded-lg bg-blue-500 text-white text-sm cursor-pointer flex items-center gap-2"
+        @click    = "processFiles"
+        :disabled = "!exposed.filesSource.length"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-check-icon lucide-check"><path d="M20 6 9 17l-5-5"/></svg>
+        <span>Process</span>
+      </button>
     </div>
   </div>
   <div
@@ -219,21 +220,28 @@
   
   <!-- PROCESS -->
   <br/>
-<div class="h5">
+<div class="text-xl mb-2">
   FILES TARGET
   <span v-if="exposed.filesTarget.length">({{exposed.filesTarget.length}})</span>
 </div>
-<div class="card mb-2" style="border: 1px solid black">
-  <div class="card-body">
-    <div v-if="!exposed.filesTarget.length">
-      <span class="chip">NO FILE PRODUCED</span>
-    </div>
-    <div v-for="file in exposed.filesTarget">
-      <v-icon class="icon icon-check text-success mr-2"></v-icon>
-      {{ file }}
-    </div>
+<div class="rounded-lg mb-2 p-2 bg-white border border-gray-400">
+  <div v-if="!exposed.filesTarget.length">
+    <span class="chip">NO FILE PRODUCED</span>
+  </div>
+  <div
+    v-for   = "file in exposed.filesTarget"
+    class   = "truncate flex items-center gap-2"
+  >
+    <span class="text-green-600"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-file-check-icon lucide-file-check"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"/><path d="M14 2v5a1 1 0 0 0 1 1h5"/><path d="m9 15 2 2 4-4"/></svg></span>
+    {{ file }}
   </div>
 </div>
+
+  <div class="text-center mt-12">
+    <div class="mb-2 mx-auto border-t-1 border-gray-400 w-10"></div>
+    <div class="text-gray-400">Powered by Go + PetiteVue + Tailwind</div>
+    <div class="text-gray-400">Created by Márcio Jalber</div>
+  </div>
 </main>
 
 <script>

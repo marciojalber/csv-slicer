@@ -1,9 +1,9 @@
 {{@layout main}}
-<main class="container">
+<main>
   <div class="overlay" v-if="busy.active">
     <div class="overlay-msg">{{busy.msg}}</div>
   </div>
-  <h2>
+  <h2 class="text-3xl font-medium mb-8">
     CSV Slicer
   </h2>
 
@@ -18,6 +18,12 @@
   
   <!-- PROCESS -->
   {{@local 4_filesTarget}}
+
+  <div class="text-center mt-12">
+    <div class="mb-2 mx-auto border-t-1 border-gray-400 w-10"></div>
+    <div class="text-gray-400">Powered by Go + PetiteVue + Tailwind</div>
+    <div class="text-gray-400">Created by Márcio Jalber</div>
+  </div>
 </main>
 
 <script>
